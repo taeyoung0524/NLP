@@ -1,16 +1,18 @@
-# Problem Set: GPT-2 Self-Attention for the Token “it”
-
-**Instructions:** Show your calculations. Round numerical results to three decimal places. Use a calculator for exponentials.
-
-## Sentence and model setup
-
-Consider the sentence:
-
+# 문제: 토큰 "it"에 대한 GPT-2 Self-Attention
+ 
+**안내:** 계산 과정을 함께 적으시오. 수치 결과는 소수점 셋째 자리까지 반올림하시오. 지수(exp) 계산에는 계산기를 사용하시오.
+ 
+---
+ 
+## 문장과 모델 설정
+ 
+다음 문장을 생각하자.
+ 
 > **A robot must obey the orders given it.**
-
-For this tutorial, assume that the sentence is tokenised into the following **nine tokens**, with no subword splitting:
-
-| Position (0-based) | Token |
+ 
+이 문제에서는 문장이 서브워드로 쪼개지지 않고, 아래와 같이 **토큰 9개**로 토큰화된다고 가정한다.
+ 
+| 위치 (0부터 시작) | 토큰 |
 |:---:|:---|
 | 0 | A |
 | 1 | robot |
@@ -21,151 +23,163 @@ For this tutorial, assume that the sentence is tokenised into the following **ni
 | 6 | given |
 | 7 | it |
 | 8 | . |
-
-We will calculate **only the representation of the token `it` at position 7** as it passes through a simplified GPT-2 Transformer block. Because GPT-2 uses *causal* self-attention, `it` may attend to positions **0 through 7**, but not to the period at position 8.
-
-Use a simplified model with embedding dimension $d_{\mathrm{model}}=4$, two attention heads ($h=2$), and head dimension $d_k=d_v=2$. Assume that the input embeddings **already include positional information**. All biases are zero. Ignore residual connections and layer normalisation, and replace GELU with ReLU for hand calculation. The MLP hidden dimension is also reduced from the standard GPT-2 expansion to make arithmetic manageable.
-
-The input embedding matrix $X\in\mathbb{R}^{9\times4}$ is:
-
-$$
-X=\begin{bmatrix}
-0&0&0&0\\
-1&0&0&0\\
-0&0&0&0\\
-0&0&0&0\\
-0&0&0&0\\
-0&1&0&0\\
-0&0&0&0\\
-1&0&1&0\\
-0&0&0&0
-\end{bmatrix}.
-$$
-
-The rows correspond to the tokens in the table above. **These are artificial embeddings chosen to make hand calculation possible; they are not embeddings extracted from a trained GPT-2 model.**
-
-## Problem 1. Create Query, Key and Value
-
-For this example, let
-
-$$
-W_Q=W_K=W_V=I_4,
-$$
-
-where $I_4$ is the $4\times4$ identity matrix. Compute
-
-$$
-Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V.
-$$
-
-**(a)** Write the query vector $q_{\mathrm{it}}$ for `it` and the key and value vectors for `robot`, `orders`, and `it`.
-
-**(b)** Give the shape of each of the full matrices $Q$, $K$, and $V$.
-
-**(c)** GPT-2 can compute these projections in one operation using a combined weight matrix. Write $W_{\mathrm{c\_attn}}=[W_Q\;W_K\;W_V]$ and state its shape.
-
-## Problem 2. Split into Attention Heads
-
-Split the **four features** of every query, key, and value into two heads: head 1 uses features 1–2, and head 2 uses features 3–4 (feature numbers here are **1-based**).
-
-**(a)** Write $q_{\mathrm{it}}^{(1)}$ and $q_{\mathrm{it}}^{(2)}$.
-
-**(b)** Write $k_j^{(1)},v_j^{(1)},k_j^{(2)},v_j^{(2)}$ for $j\in\{1,5,7\}$ (the tokens `robot`, `orders`, and `it`).
-
-## Problem 3. Attention Scores and Causal Mask
-
-For each head $r\in\{1,2\}$, calculate the attention scores **from `it` to every allowed token**, using
-
-$$
-s_j^{(r)}=\frac{q_{\mathrm{it}}^{(r)}\cdot k_j^{(r)}}{\sqrt{2}},\qquad j=0,1,\ldots,7.
-$$
-
-**(a)** Calculate the eight scores for each head. Give the two vectors in token order, from `A` to `it`.
-
-**(b)** What score is assigned to the future token `.` (position 8) by the causal mask, and why?
-
-**(c)** Calculate the attention weights for both heads using softmax **over the eight allowed positions only**:
-
-$$
-a_j^{(r)}=\frac{\exp(s_j^{(r)})}{\sum_{m=0}^{7}\exp(s_m^{(r)})}.
-$$
-
-Show the denominator for each head and give each weight to three decimal places. The weights within each head must sum to approximately 1.
-
-## Problem 4. Weighted Sum of Values
-
-For each head, compute the output representation for `it`:
-
-$$
-h_{\mathrm{it}}^{(r)}=\sum_{j=0}^{7}a_j^{(r)}v_j^{(r)}.
-$$
-
-**(a)** Calculate $h_{\mathrm{it}}^{(1)}$.
-
-**(b)** Calculate $h_{\mathrm{it}}^{(2)}$.
-
-**(c)** In head 1, compare the attention weight assigned to `robot` with that assigned to `orders`. Which is larger? **Do not interpret this artificial result as evidence of how a trained GPT-2 resolves pronouns.**
-
-## Problem 5. Merge Heads and Apply Output Projection
-
-Concatenate the two head outputs in order:
-
-$$
-h_{\mathrm{it}}=\operatorname{Concat}\!\left(h_{\mathrm{it}}^{(1)},h_{\mathrm{it}}^{(2)}\right).
-$$
-
-Apply the output projection (a separate weight matrix from the QKV projection):
-
-$$
-z_{\mathrm{it}}=h_{\mathrm{it}}W_O,\qquad
-W_O=\begin{bmatrix}
-1&0&0&0\\
-0&1&0&0\\
-0&0&1&1\\
-0&0&0&1
-\end{bmatrix}.
-$$
-
-**(a)** Calculate the merged vector $h_{\mathrm{it}}$.
-
-**(b)** Calculate $z_{\mathrm{it}}$ and state its dimension.
-
-**(c)** Is this output-projection matrix the same matrix used to create Q, K, and V?
-
-## Problem 6. Position-wise Fully Connected Neural Network
-
-Pass the projected representation of `it` through a simplified two-layer feed-forward network:
-
-$$
-f_{\mathrm{it}}=\operatorname{ReLU}(z_{\mathrm{it}}W_1),
-\qquad y_{\mathrm{it}}=f_{\mathrm{it}}W_2,
-$$
-
-with
-
-$$
-W_1=\begin{bmatrix}
-2&0&0&0\\
-0&1&0&0\\
-0&0&1&0\\
-0&0&0&1
-\end{bmatrix},\qquad
-W_2=\begin{bmatrix}
-1&0&0&0\\
-0&1&0&0\\
-0&0&1&1\\
-0&0&0&1
-\end{bmatrix}.
-$$
-
-**(a)** Calculate $z_{\mathrm{it}}W_1$.
-
-**(b)** Apply ReLU to obtain $f_{\mathrm{it}}$.
-
-**(c)** Calculate the final output $y_{\mathrm{it}}$.
-
-**(d)** State whether the feed-forward network mixes information **across token positions** or processes the representation of each token **independently**.
-
+ 
+간단히 만든 GPT-2 Transformer 블록을 통과할 때, **위치 7에 있는 토큰 `it`의 표현만** 계산한다. GPT-2는 *인과적(causal)* self-attention을 사용하므로, `it`은 위치 **0부터 7까지**에는 attention할 수 있지만, 위치 8의 마침표에는 attention할 수 없다.
+ 
+다음과 같이 단순화한 모델을 사용한다.
+ 
+- 임베딩 차원 d_model = 4
+- attention head 2개 (h = 2)
+- head 차원 d_k = d_v = 2
+- 입력 임베딩에는 **이미 위치 정보가 포함되어 있다**고 가정한다.
+- 모든 bias는 0이다.
+- residual connection과 layer normalization은 무시한다.
+- 손으로 계산하기 위해 GELU 대신 ReLU를 사용한다.
+- MLP의 hidden 차원도 계산이 쉽도록 표준 GPT-2보다 줄였다.
+입력 임베딩 행렬 X (크기 9 × 4)는 다음과 같다.
+ 
+```
+        f1  f2  f3  f4
+A     [  0   0   0   0 ]
+robot [  1   0   0   0 ]
+must  [  0   0   0   0 ]
+obey  [  0   0   0   0 ]
+the   [  0   0   0   0 ]
+orders[  0   1   0   0 ]
+given [  0   0   0   0 ]
+it    [  1   0   1   0 ]
+.     [  0   0   0   0 ]
+```
+ 
+각 행은 위 표의 토큰에 대응한다. **이 값들은 손 계산이 가능하도록 임의로 정한 임베딩이며, 실제로 학습된 GPT-2에서 추출한 임베딩이 아니다.**
+ 
 ---
-
-**Scope note:** This exercise calculates the representation of the *existing input token* `it`; it does **not** predict `it` as the next token. In an autoregressive GPT-2 model, the logits used to *predict* `it` would be obtained from the preceding position (`given`).
+ 
+## 문제 1. Query, Key, Value 만들기
+ 
+이 예제에서는
+ 
+```
+W_Q = W_K = W_V = I_4
+```
+ 
+로 둔다. 여기서 I_4는 4 × 4 단위행렬이다. 다음을 계산하시오.
+ 
+```
+Q = X W_Q,   K = X W_K,   V = X W_V
+```
+ 
+**(a)** `it`의 query 벡터 q_it와, `robot`, `orders`, `it`의 key 벡터와 value 벡터를 쓰시오.
+ 
+**(b)** 전체 행렬 Q, K, V 각각의 크기(shape)를 쓰시오.
+ 
+**(c)** GPT-2는 하나로 합친 가중치 행렬을 사용해 이 세 투영을 한 번의 연산으로 계산할 수 있다. W_c_attn = [W_Q  W_K  W_V]를 쓰고, 그 크기를 쓰시오.
+ 
+---
+ 
+## 문제 2. Attention Head로 나누기
+ 
+모든 query, key, value의 **특징 4개**를 두 head로 나눈다. head 1은 특징 1~2를, head 2는 특징 3~4를 사용한다 (여기서 특징 번호는 **1부터 시작**한다).
+ 
+**(a)** q_it(1)과 q_it(2)를 쓰시오.
+ 
+**(b)** j ∈ {1, 5, 7} (토큰 `robot`, `orders`, `it`)에 대해 k_j(1), v_j(1), k_j(2), v_j(2)를 쓰시오.
+ 
+(표기: 괄호 안의 숫자는 head 번호이다. 예를 들어 q_it(1)은 head 1에서 `it`의 query이다.)
+ 
+---
+ 
+## 문제 3. Attention Score와 Causal Mask
+ 
+각 head r ∈ {1, 2}에 대해, 다음 식으로 **`it`에서 attention이 허용된 모든 토큰까지의** attention score를 계산하시오.
+ 
+```
+s_j(r) = ( q_it(r) · k_j(r) ) / √2,     j = 0, 1, ..., 7
+```
+ 
+**(a)** 각 head마다 score 8개를 계산하시오. 두 벡터를 토큰 순서대로 (`A`부터 `it`까지) 쓰시오.
+ 
+**(b)** Causal mask는 미래 토큰인 `.`(위치 8)에 어떤 score를 부여하는가? 그 이유는 무엇인가?
+ 
+**(c)** 두 head 각각에 대해, **허용된 8개 위치에 대해서만** softmax를 적용하여 attention weight를 계산하시오.
+ 
+```
+a_j(r) = exp(s_j(r)) / Σ_{m=0}^{7} exp(s_m(r))
+```
+ 
+각 head의 분모를 함께 쓰고, 각 weight를 소수점 셋째 자리까지 쓰시오. 각 head 안의 weight 합은 약 1이 되어야 한다.
+ 
+---
+ 
+## 문제 4. Value의 가중합
+ 
+각 head에 대해 `it`의 출력 표현을 계산하시오.
+ 
+```
+h_it(r) = Σ_{j=0}^{7} a_j(r) · v_j(r)
+```
+ 
+**(a)** h_it(1)을 계산하시오.
+ 
+**(b)** h_it(2)를 계산하시오.
+ 
+**(c)** head 1에서 `robot`에 부여된 attention weight와 `orders`에 부여된 attention weight를 비교하시오. 어느 쪽이 더 큰가? **이 결과는 임의로 만든 값에서 나온 것이므로, 학습된 GPT-2가 대명사를 어떻게 해석하는지에 대한 근거로 받아들이지 마시오.**
+ 
+---
+ 
+## 문제 5. Head 합치기와 출력 투영
+ 
+두 head의 출력을 순서대로 이어 붙인다.
+ 
+```
+h_it = Concat( h_it(1), h_it(2) )
+```
+ 
+출력 투영을 적용한다 (QKV 투영과는 별개의 가중치 행렬이다).
+ 
+```
+z_it = h_it W_O
+ 
+W_O = [ 1  0  0  0 ]
+      [ 0  1  0  0 ]
+      [ 0  0  1  1 ]
+      [ 0  0  0  1 ]
+```
+ 
+**(a)** 합친 벡터 h_it를 계산하시오.
+ 
+**(b)** z_it를 계산하고 그 차원을 쓰시오.
+ 
+**(c)** 이 출력 투영 행렬은 Q, K, V를 만들 때 사용한 행렬과 같은가?
+ 
+---
+ 
+## 문제 6. 위치별 완전연결 신경망 (Position-wise Feed-Forward)
+ 
+투영된 `it`의 표현을 간단한 2층 feed-forward 신경망에 통과시킨다.
+ 
+```
+f_it = ReLU( z_it W_1 )
+y_it = f_it W_2
+```
+ 
+여기서
+ 
+```
+W_1 = [ 2  0  0  0 ]        W_2 = [ 1  0  0  0 ]
+      [ 0  1  0  0 ]              [ 0  1  0  0 ]
+      [ 0  0  1  0 ]              [ 0  0  1  1 ]
+      [ 0  0  0  1 ]              [ 0  0  0  1 ]
+```
+ 
+**(a)** z_it W_1을 계산하시오.
+ 
+**(b)** ReLU를 적용하여 f_it를 구하시오.
+ 
+**(c)** 최종 출력 y_it를 계산하시오.
+ 
+**(d)** Feed-forward 신경망이 **토큰 위치 사이의 정보를 섞는지**, 아니면 **각 토큰의 표현을 독립적으로 처리하는지** 쓰시오.
+ 
+---
+ 
+**범위 안내:** 이 문제는 *이미 입력에 있는 토큰* `it`의 표현을 계산하는 것이며, 다음 토큰으로 `it`을 예측하는 것이 **아니다**. 자기회귀 GPT-2 모델에서 `it`을 *예측*하는 데 쓰이는 logit은 그 앞 위치(`given`)에서 얻어진다.
