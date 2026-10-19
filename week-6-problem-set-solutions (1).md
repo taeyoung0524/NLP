@@ -1,196 +1,161 @@
-# Solutions: Text Generation and Decoding
-
-## Solution 1. Greedy Search
-
-Greedy search selects token **B**, because it has the highest probability.
-
-$$
-\ln(0.45)\approx -0.799
-$$
-
-**Answer:** B; log probability $\approx -0.799$.
-
+# 풀이: 텍스트 생성과 디코딩
+ 
+## 풀이 1. Greedy Search
+ 
+Greedy search는 확률이 가장 높은 토큰인 **B**를 선택한다.
+ 
+```
+ln(0.45) ≈ -0.799
+```
+ 
+**답:** B, 로그 확률 ≈ -0.799
+ 
 ---
-
-## Solution 2. Sequence Probability
-
-The sequence probability is
-
-$$
-P(w_1,w_2,w_3)
-=
-P(w_1)P(w_2\mid w_1)P(w_3\mid w_1,w_2)
-$$
-
-Therefore,
-
-$$
-P(w_1,w_2,w_3)=0.5\times0.4\times0.2=0.04
-$$
-
-The log probability is
-
-$$
-\ln(0.04)
-=
-\ln(0.5)+\ln(0.4)+\ln(0.2)
-\approx -3.219
-$$
-
-Log probabilities convert products into sums and reduce numerical underflow when many small probabilities are multiplied.
-
+ 
+## 풀이 2. 시퀀스 확률
+ 
+시퀀스 확률은 다음과 같다.
+ 
+```
+P(w1, w2, w3) = P(w1) × P(w2 | w1) × P(w3 | w1, w2)
+```
+ 
+따라서
+ 
+```
+P(w1, w2, w3) = 0.5 × 0.4 × 0.2 = 0.04
+```
+ 
+로그 확률은
+ 
+```
+ln(0.04) = ln(0.5) + ln(0.4) + ln(0.2) ≈ -3.219
+```
+ 
+로그 확률을 사용하면 곱셈이 덧셈으로 바뀌어, 작은 확률을 여러 번 곱할 때 생기는 수치적 언더플로(underflow)를 줄일 수 있다.
+ 
 ---
-
-## Solution 3. Beam Search
-
-With $b=2$, A and B are retained after the first step.
-
-$$
-P(AX)=0.5\times0.2=0.10
-$$
-
-$$
-P(AY)=0.5\times0.5=0.25
-$$
-
-$$
-P(AZ)=0.5\times0.3=0.15
-$$
-
-$$
-P(BX)=0.3\times0.6=0.18
-$$
-
-$$
-P(BY)=0.3\times0.1=0.03
-$$
-
-$$
-P(BZ)=0.3\times0.3=0.09
-$$
-
-The two highest-probability sequences are **AY** with 0.25 and **BX** with 0.18.
-
+ 
+## 풀이 3. Beam Search
+ 
+b = 2이므로 첫 단계 후 A와 B가 남는다.
+ 
+```
+P(AX) = 0.5 × 0.2 = 0.10
+P(AY) = 0.5 × 0.5 = 0.25
+P(AZ) = 0.5 × 0.3 = 0.15
+P(BX) = 0.3 × 0.6 = 0.18
+P(BY) = 0.3 × 0.1 = 0.03
+P(BZ) = 0.3 × 0.3 = 0.09
+```
+ 
+확률이 가장 높은 두 시퀀스는 **AY**(0.25)와 **BX**(0.18)이다.
+ 
 ---
-
-## Solution 4. Greedy Search vs. Global Sequence Probability
-
-Greedy search selects A first. Given A, X and Y are tied at 0.5, so the stated tie-breaking rule selects X. The greedy sequence is **AX**.
-
-$$
-P(AX)=0.6\times0.5=0.30
-$$
-
-$$
-P(AY)=0.6\times0.5=0.30
-$$
-
-$$
-P(BX)=0.4\times0.9=0.36
-$$
-
-$$
-P(BY)=0.4\times0.1=0.04
-$$
-
-The most probable complete sequence is **BX**, with probability 0.36. Greedy search therefore does not find the globally most probable sequence in this example. A locally optimal choice at each step does not necessarily maximise the probability of the complete sequence.
-
+ 
+## 풀이 4. Greedy Search vs. 전체 시퀀스 확률
+ 
+Greedy search는 먼저 A를 선택한다. A 다음에는 X와 Y가 0.5로 동률이므로, 문제에서 정한 동률 처리 규칙에 따라 X를 선택한다. 따라서 greedy 시퀀스는 **AX**이다.
+ 
+```
+P(AX) = 0.6 × 0.5 = 0.30
+P(AY) = 0.6 × 0.5 = 0.30
+P(BX) = 0.4 × 0.9 = 0.36
+P(BY) = 0.4 × 0.1 = 0.04
+```
+ 
+전체 시퀀스 중 확률이 가장 높은 것은 **BX**(0.36)이다. 따라서 이 예시에서 greedy search는 전체적으로 확률이 가장 높은 시퀀스를 찾지 못한다. 매 단계에서 가장 좋은 선택(국소 최적)이 전체 시퀀스의 확률을 최대화한다는 보장은 없다.
+ 
 ---
-
-## Solution 5. Temperature and Softmax
-
-For $T=1$,
-
-$$
-P_1=\frac{e^2}{e^2+e^1},\qquad
-P_2=\frac{e^1}{e^2+e^1}
-$$
-
-so
-
-$$
-P\approx[0.731,\;0.269]
-$$
-
-For $T=0.5$, the scaled logits are
-
-$$
-[2/0.5,\;1/0.5]=[4,2]
-$$
-
-and
-
-$$
-P_1=\frac{e^4}{e^4+e^2},\qquad
-P_2=\frac{e^2}{e^4+e^2}
-$$
-
-so
-
-$$
-P\approx[0.881,\;0.119]
-$$
-
-Reducing the temperature makes the distribution sharper, concentrating more probability on the token with the larger logit.
-
+ 
+## 풀이 5. Temperature와 Softmax
+ 
+**T = 1일 때**
+ 
+```
+P1 = e^2 / (e^2 + e^1)
+P2 = e^1 / (e^2 + e^1)
+ 
+P ≈ [0.731, 0.269]
+```
+ 
+**T = 0.5일 때**
+ 
+logit을 T로 나누면
+ 
+```
+[2 / 0.5, 1 / 0.5] = [4, 2]
+```
+ 
+이고
+ 
+```
+P1 = e^4 / (e^4 + e^2)
+P2 = e^2 / (e^4 + e^2)
+ 
+P ≈ [0.881, 0.119]
+```
+ 
+Temperature를 낮추면 분포가 더 뾰족해져서, logit이 큰 토큰에 확률이 더 집중된다.
+ 
 ---
-
-## Solution 6. Top-k Sampling
-
-For $k=3$, the retained probabilities are
-
-$$
-[0.35,\;0.25,\;0.20]
-$$
-
-Their sum is
-
-$$
-0.35+0.25+0.20=0.80
-$$
-
-After renormalisation,
-
-$$
-\frac{0.35}{0.80}=0.4375,\qquad
-\frac{0.25}{0.80}=0.3125,\qquad
-\frac{0.20}{0.80}=0.25
-$$
-
-Thus,
-
-$$
-[0.4375,\;0.3125,\;0.25]
-$$
-
-The other three tokens are excluded from the candidate set and have zero sampling probability for this step.
-
+ 
+## 풀이 6. Top-k Sampling
+ 
+k = 3이므로 남는 확률은
+ 
+```
+[0.35, 0.25, 0.20]
+```
+ 
+이들의 합은
+ 
+```
+0.35 + 0.25 + 0.20 = 0.80
+```
+ 
+합이 1이 되도록 다시 정규화하면
+ 
+```
+0.35 / 0.80 = 0.4375
+0.25 / 0.80 = 0.3125
+0.20 / 0.80 = 0.25
+```
+ 
+따라서
+ 
+```
+[0.4375, 0.3125, 0.25]
+```
+ 
+나머지 세 토큰은 후보에서 제외되어, 이번 단계에서 뽑힐 확률이 0이 된다.
+ 
 ---
-
-## Solution 7. Nucleus Sampling
-
-The cumulative probabilities are
-
-$$
-0.40,\qquad
-0.40+0.25=0.65,\qquad
-0.40+0.25+0.15=0.80
-$$
-
-The nucleus therefore contains the first three tokens.
-
-After renormalisation,
-
-$$
-\frac{0.40}{0.80}=0.50,\qquad
-\frac{0.25}{0.80}=0.3125,\qquad
-\frac{0.15}{0.80}=0.1875
-$$
-
-Thus,
-
-$$
-[0.50,\;0.3125,\;0.1875]
-$$
-
-Top-k sampling retains a fixed number of tokens, whereas nucleus sampling retains a variable number determined by the cumulative probability threshold.
+ 
+## 풀이 7. Nucleus Sampling (Top-p)
+ 
+누적 확률은 다음과 같다.
+ 
+```
+0.40
+0.40 + 0.25 = 0.65
+0.40 + 0.25 + 0.15 = 0.80
+```
+ 
+따라서 nucleus에는 처음 세 토큰이 포함된다.
+ 
+다시 정규화하면
+ 
+```
+0.40 / 0.80 = 0.50
+0.25 / 0.80 = 0.3125
+0.15 / 0.80 = 0.1875
+```
+ 
+따라서
+ 
+```
+[0.50, 0.3125, 0.1875]
+```
+ 
+Top-k sampling은 고정된 개수의 토큰을 남기는 반면, nucleus sampling은 누적 확률 기준값에 따라 남는 토큰 수가 달라진다.
